@@ -1,19 +1,28 @@
 PROG      ?= firmware
 MDK       ?= $(realpath $(dir $(lastword $(MAKEFILE_LIST)))/..)
 ARCH      ?= esp32c3
-#TOOLCHAIN ?= riscv64-unknown-elf
 ESPUTIL   ?= $(MDK)/tools/esputil
+BUILD     ?= local
 
 ifeq "$(ARCH)" "esp32c3"
 MCUFLAGS  ?= -march=rv32imc -mabi=ilp32
 WARNFLAGS ?= -Wformat-truncation
 BLOFFSET  ?= 0  # 2nd stage bootloader flash offset
+ifeq "$(BUILD)" "docker"
 TOOLCHAIN ?= docker run -it --rm -v $(MDK):$(MDK) -w $(CURDIR) mdashnet/riscv riscv-none-elf
+else ifeq "$(BUILD)" "local"
+TOOLCHAIN ?= riscv64-unknown-elf
+INCDIR    ?= /usr/include
+endif
 LINKFLAGS ?= -T$(MDK)/make/$(ARCH).ld -nostdlib -nostartfiles -Wl,--gc-sections $(EXTRA_LINKFLAGS)
 else ifeq "$(ARCH)" "esp32"
 MCUFLAGS  ?= -mlongcalls -mtext-section-literals
 BLOFFSET  ?= 0x1000  # 2nd stage bootloader flash offset
+ifeq "$(BUILD)" "docker"
 TOOLCHAIN ?= docker run -it --rm -v $(MDK):$(MDK) -w $(CURDIR) espressif/idf xtensa-esp32-elf
+else ifeq "$(BUILD)" "local"
+TOOLCHAIN ?= xtensa-esp32-elf
+endif
 LINKFLAGS ?= $(MCUFLAGS) -T$(MDK)/make/$(ARCH).ld -nostdlib -nostartfiles -Wl,--gc-sections $(EXTRA_LINKFLAGS)
 else
 OPTFLAGS = -O0 -g3
@@ -23,7 +32,7 @@ endif
 # -ffunction-sections -fdata-sections, -Wl,--gc-sections remove unused code
 # strict WARNFLAGS protect from stupid mistakes
 
-INCLUDES  ?= -I. -I$(MDK)/src -I$(MDK)/src/$(ARCH) -D$(ARCH)
+INCLUDES  ?= -I. -I$(MDK)/src -I$(MDK)/src/$(ARCH) -I$(INCDIR) -D$(ARCH)
 WARNFLAGS ?= -W -Wall -Wextra -Werror -Wundef -Wshadow -Wdouble-promotion -fno-common -Wconversion
 OPTFLAGS  ?= -Os -g3 -ffunction-sections -fdata-sections
 CFLAGS    ?= $(WARNFLAGS) $(OPTFLAGS) $(MCUFLAGS) $(INCLUDES) $(EXTRA_CFLAGS)
