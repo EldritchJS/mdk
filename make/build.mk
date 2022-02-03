@@ -1,12 +1,13 @@
 PROG      ?= firmware
 MDK       ?= $(realpath $(dir $(lastword $(MAKEFILE_LIST)))/..)
+MNT       ?= $(realpath $(MDK)/..)
 ARCH      ?= esp32c3
 ESPUTIL   ?= $(MDK)/tools/esputil
 BUILD     ?= local
 
 ifeq "$(ARCH)" "esp32c3"
 MCUFLAGS  ?= -march=rv32imc -mabi=ilp32
-WARNFLAGS ?= -Wformat-truncation
+#WARNFLAGS += -Wformat-truncation
 BLOFFSET  ?= 0  # 2nd stage bootloader flash offset
 ifeq "$(BUILD)" "docker"
 TOOLCHAIN ?= docker run -it --rm -v $(MDK):$(MDK) -w $(CURDIR) mdashnet/riscv riscv-none-elf
