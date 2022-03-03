@@ -1,33 +1,57 @@
+// Copyright (c) 2021 Cesanta
+// All rights reserved
+//
+// Wiznet W5500 Ethernet example
+// This example required mip network stack, https://github.com/cesanta/mip
+
 #include <sdk.h>
+
 #include "drivers/w5500.h"
-#include "mip.h"
+#include "slip.h"
 
-static int led_pin = LED1;  // To override: make EXTRA_CFLAGS=-DLED1=5
-
-static void tx(struct mip_if *ifp) {
-  w5500_tx(ifp->userdata, ifp->frame, (uint16_t) ifp->frame_len);
+static void uart_tx(unsigned char c, void *arg) {
+  uart_write(0, c);
+  (void) arg;
 }
 
 int main(void) {
   wdt_disable();
-  gpio_output(led_pin);
+  delay_ms(200);
 
-  struct spi spi = {.mosi = 23, .miso = 19, .clk = 18, .cs = {5, -1, -1}};
-  spi_init(&spi);
+  struct spi spi = {.mosi = 0, .miso = 2, .clk = 1, .spin = 4, .cs = 10};
+  bool spi_ok = spi_init(&spi);
+  printf("SPI init: %d\n", spi_ok);
 
-  struct w5500 wiz = {.spi = &spi, .cs = 5, .mac = {0xaa, 0xbb, 0xcc, 1, 2, 3}};
-  w5500_init(&wiz);
+  struct w5500 wiz = {.spi = &spi,
+                      .txn = (uint8_t(*)(void *, uint8_t)) spi_txn,
+                      .begin = (void (*)(void *)) spi_begin,
+                      .end = (void (*)(void *)) spi_end,
+                      .mac = {0xaa, 0xbb, 0xcc, 1, 2, 3}};
+  bool wiz_ok = w5500_init(&wiz);
+  printf("Wiz init: %d\n", wiz_ok);
 
-  uint8_t frame[2048];
-  struct mip_if mif = {.tx = tx,
-                       .userdata = &wiz,
-                       .frame = frame,
-                       .frame_max_size = sizeof(frame)};
+  struct slip slip = {.size = 1536, .buf = malloc(slip.size)};
+  printf("Allocated %d bytes @ %p for netif frame\n", slip.size, slip.buf);
 
+  uint8_t c, s1 = 0, s2 = 0;
   for (;;) {
-    mif.frame_len = w5500_rx(&wiz, mif.frame, (uint16_t) mif.frame_max_size);
-    mip_rx(&mif);
-    mip_poll(&mif, time_us() / 1000);
+    while (uart_read(0, &c)) {
+      size_t len = slip_recv(c, &slip);
+      if (len > 0) {
+        printf("TX %u\n", len);
+        // hexdump(slip.buf, len);
+        w5500_tx(&wiz, slip.buf, (uint16_t) len);
+      }
+      if (len == 0 && slip.mode == 0) putchar(c);
+    }
+    uint8_t buf[1600];
+    size_t len = w5500_rx(&wiz, buf, (uint16_t) sizeof(buf));
+    if (len > 0) {
+      slip_send(buf, len, uart_tx, NULL);
+      printf("RX: %u\n", len);
+    }
+    s2 = w5500_status(&wiz);
+    if (s1 != s2) s1 = s2, printf("Ethernet status changed to: %x\n", s1);
   }
 
   return 0;

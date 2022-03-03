@@ -8,11 +8,11 @@ TRM](https://www.espressif.com/sites/default/files/documentation/esp32_technical
 It is completely independent from the ESP-IDF and does not use any ESP-IDF
 tools or files. The only requirement is GCC crosscompiler.
 
-A screenshot below demonstrates a [examples/c3ws2812](examples/c3ws2812)
+A screenshot below demonstrates a [examples/ws2812](examples/ws2812)
 RGB LED firmware flashed on a ESP32-C3-DevKitM-1 board. It takes < 2 seconds
 for a full firmware rebuild and flash:
 
-![](examples/c3ws2812/rainbow.gif)
+![](examples/ws2812/rainbow.gif)
 
 # Environment setup
 
@@ -122,10 +122,10 @@ API support matrix:
   ```
 - Log [src/log.h](src/log.h), [src/log.c](src/log.c)
   ```c
-  void sdk_log(const char *fmt, ...);   // Log message to UART 0
-                                        // Supported specifiers:
-                                        // %d, %x, %s, %p
-  void sdk_hexdump(const void *buf, size_t len);  // Hexdump buffer
+  void logf(const char *fmt, ...);   // Log message to UART 0
+                                     // Supported specifiers:
+                                     // %d, %x, %s, %p
+  void loghex(const void *buf, size_t len);  // Hexdump buffer
   ```
 - TCP/IP
 
