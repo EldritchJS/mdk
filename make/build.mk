@@ -33,7 +33,7 @@ endif
 # -ffunction-sections -fdata-sections, -Wl,--gc-sections remove unused code
 # strict WARNFLAGS protect from stupid mistakes
 
-INCLUDES  ?= -I. -I$(MDK)/src -I$(MDK)/src/$(ARCH) -I$(INCDIR) -D$(ARCH)
+INCLUDES  += -I. -I$(MDK)/src -I$(MDK)/src/$(ARCH) -I$(INCDIR) -D$(ARCH)
 WARNFLAGS ?= -W -Wall -Wextra -Werror -Wundef -Wshadow -Wdouble-promotion -fno-common -Wconversion
 OPTFLAGS  ?= -Os -g3 -ffunction-sections -fdata-sections
 CFLAGS    ?= $(WARNFLAGS) $(OPTFLAGS) $(MCUFLAGS) $(INCLUDES) $(EXTRA_CFLAGS)
